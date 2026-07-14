@@ -12,13 +12,17 @@ Uso local:
 
 from __future__ import annotations
 
-import io
 import os
 import sys
-from datetime import datetime, timezone
+import time
+from datetime import date
 
 import pandas as pd
 import requests
+
+from jobs.bronze._gcs import write_parquet_partitioned
+
+SOURCE = "bacen_sgs"
 
 # Séries SGS de interesse (código -> nome). https://dadosabertos.bcb.gov.br/
 SERIES: dict[int, str] = {
@@ -27,30 +31,53 @@ SERIES: dict[int, str] = {
     1: "cambio_usd_venda",
 }
 
-SGS_URL = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.{codigo}/dados?formato=json"
-MAX_RETRIES = 3
+SGS_URL = (
+    "https://api.bcb.gov.br/dados/serie/bcdata.sgs.{codigo}/dados"
+    "?formato=json&dataInicial={ini}&dataFinal={fim}"
+)
+# A API do BCB responde 406 (content negotiation) sem Accept explícito.
+HEADERS = {
+    "User-Agent": "panorama-br/1.0 (+https://github.com/matheusraull99/panorama-br)",
+    "Accept": "application/json",
+}
+# Séries diárias (ex: Selic 432, câmbio 1) aceitam janela de no máximo 10 anos.
+JANELA_ANOS = 10
+MAX_RETRIES = 4
 TIMEOUT = 30
+
+
+def _janela() -> tuple[str, str]:
+    hoje = date.today()
+    ini = hoje.replace(year=hoje.year - JANELA_ANOS)
+    return ini.strftime("%d/%m/%Y"), hoje.strftime("%d/%m/%Y")
 
 
 def fetch_serie(codigo: int) -> list[dict] | None:
     """Busca uma série do SGS com retries. Retorna None se falhar após todas as tentativas."""
+    ini, fim = _janela()
+    url = SGS_URL.format(codigo=codigo, ini=ini, fim=fim)
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            resp = requests.get(SGS_URL.format(codigo=codigo), timeout=TIMEOUT)
+            resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+            if not isinstance(data, list) or not data:
+                raise ValueError(f"resposta inesperada: {str(data)[:120]}")
+            return data
         except (requests.RequestException, ValueError) as exc:
-            print(f"[bacen_sgs] série {codigo} tentativa {attempt}/{MAX_RETRIES} falhou: {exc}")
+            print(f"[{SOURCE}] série {codigo} tentativa {attempt}/{MAX_RETRIES} falhou: {exc}")
+            if attempt < MAX_RETRIES:
+                time.sleep(2 * attempt)  # backoff simples p/ 406 intermitente
     return None
 
 
 def build_dataframe() -> pd.DataFrame:
+    """Monta o DataFrame consolidado de todas as séries. Fail-loud em falha real de API."""
     frames: list[pd.DataFrame] = []
     for codigo, nome in SERIES.items():
         data = fetch_serie(codigo)
         if data is None:
-            # Fail-loud: falha real de API não é "sem dados".
-            print(f"[bacen_sgs] ERRO FATAL: série {codigo} ({nome}) sem dados após retries.")
+            print(f"[{SOURCE}] ERRO FATAL: série {codigo} ({nome}) sem dados após retries.")
             sys.exit(1)
         df = pd.DataFrame(data)
         df["codigo"] = codigo
@@ -59,33 +86,14 @@ def build_dataframe() -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
-def upload_parquet(df: pd.DataFrame, bucket_name: str) -> str:
-    """Grava o DataFrame como Parquet particionado por data de ingestão no GCS."""
-    from google.cloud import storage  # import tardio p/ facilitar teste local
-
-    now = datetime.now(timezone.utc)
-    path = (
-        f"bronze/bacen_sgs/year={now:%Y}/month={now:%m}/day={now:%d}/"
-        f"bacen_sgs_{now:%Y%m%d%H%M%S}.parquet"
-    )
-    buffer = io.BytesIO()
-    df.to_parquet(buffer, engine="pyarrow", index=False)
-    buffer.seek(0)
-
-    storage.Client().bucket(bucket_name).blob(path).upload_from_file(
-        buffer, content_type="application/octet-stream"
-    )
-    return f"gs://{bucket_name}/{path}"
-
-
 def main() -> None:
     bucket_name = os.environ["BUCKET_NAME"]  # strict — sem fallback
     df = build_dataframe()
     if df.empty:
-        print("[bacen_sgs] ERRO FATAL: DataFrame vazio.")
+        print(f"[{SOURCE}] ERRO FATAL: DataFrame vazio.")
         sys.exit(1)
-    uri = upload_parquet(df, bucket_name)
-    print(f"[bacen_sgs] OK — {len(df)} linhas gravadas em {uri}")
+    uri = write_parquet_partitioned(df, bucket_name, SOURCE)
+    print(f"[{SOURCE}] OK — {len(df)} linhas gravadas em {uri}")
 
 
 if __name__ == "__main__":

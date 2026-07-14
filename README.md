@@ -118,7 +118,7 @@ panorama-br/
 ## Roadmap
 
 - [x] **Fase 0** — Scaffold: estrutura, README, arquitetura, base Terraform
-- [ ] **Fase 1** — Bronze: BACEN SGS + IBGE → GCS → BigLake (fail-loud)
+- [x] **Fase 1** — Bronze: extratores BACEN SGS + IBGE (fail-loud) validados contra APIs reais + tabelas BigLake no Terraform · _deploy pendente de projeto GCP_
 - [ ] **Fase 2** — Silver: Dataform (dedup/tipagem) + job PySpark
 - [ ] **Fase 3** — Gold + dashboard Looker Studio público
 - [ ] **Fase 4** — GenAI: chatbot RAG + agente de relatório semanal
