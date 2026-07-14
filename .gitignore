@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+*.egg-info/
+
+# Dataform / Node (CLI instala o core em runtime a partir do workflow_settings.yaml)
+node_modules/
+package.json
+package-lock.json
+.df-credentials.json
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+
+# GCP credentials
+*-key.json
+credentials.json
+gcloud/
+
+# GenAI / vector store local
+.chroma/
+*.faiss
+data/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/

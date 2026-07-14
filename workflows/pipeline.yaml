@@ -1,0 +1,18 @@
+# Cloud Workflow — pipeline diário do Panorama BR (esqueleto, Fase 5).
+# Padrão: Cloud Run Job (extract) -> refresh metadata BigLake -> Dataform (Silver + Gold).
+main:
+  steps:
+    - run_extraction:
+        # TODO(Fase 5): googleapis.run.v1.namespaces.jobs.run (bacen_sgs, ibge_sidra)
+        assign:
+          - placeholder: "extrair fontes Bronze"
+    - refresh_metadata:
+        # TODO: CALL BQ.REFRESH_EXTERNAL_METADATA_CACHE(...) nas tabelas BigLake
+        assign:
+          - placeholder: "refresh cache BigLake antes do MERGE Silver"
+    - trigger_dataform:
+        # TODO: http.post p/ workflowInvocations (1 config combinado Silver + Gold)
+        assign:
+          - placeholder: "trigger Dataform"
+    - done:
+        return: "ok"
