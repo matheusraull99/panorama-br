@@ -1,0 +1,50 @@
+name: Pipeline diário
+
+# Orquestração do modo sandbox: extração Bronze (BigQuery direto) + Dataform (Silver/Gold).
+# Auth via Workload Identity Federation (OIDC) — sem chave JSON.
+# O refresh diário também renova a expiração de 60 dias das tabelas do sandbox.
+
+on:
+  schedule:
+    - cron: "0 10 * * *" # 07:00 BRT
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA_EMAIL }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Extração Bronze (BACEN + IBGE)
+        run: |
+          pip install --quiet requests pandas pyarrow google-cloud-bigquery
+          python -m jobs.bronze.bacen_sgs
+          python -m jobs.bronze.ibge_sidra
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Dataform (Silver + Gold)
+        run: |
+          npm i -g @dataform/cli@3.0.58
+          echo '{"projectId":"${{ secrets.GCP_PROJECT_ID }}","location":"southamerica-east1"}' > .df-credentials.json
+          dataform run \
+            --actions sgs_series --actions sidra_agregados \
+            --actions indicadores_mensais --actions populacao_brasil
