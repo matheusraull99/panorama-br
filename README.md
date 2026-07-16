@@ -124,7 +124,8 @@ panorama-br/
 - [x] **Fase 4** — GenAI (Gemini): chatbot RAG NL→SQL com guarda-corpos + agente de relatório semanal — testados ao vivo ([exemplo de relatório gerado](docs/relatorios/2026-07-16.md))
 - [x] **Fase 5 (código)** — Orquestração completa em IaC: Cloud Workflow real, Cloud Run Jobs, Dataform (repo+release+config combinado Silver+Gold), Scheduler diário, CD via WIF ([guia de deploy](docs/deploy.md))
 - [x] **Go-live (modo sandbox)** — dados vivos no BigQuery (`panorama-br`): Bronze carregado das APIs reais, Silver+Gold materializados via Dataform CLI, chatbot RAG respondendo com dados reais ([detalhes](docs/deploy.md))
-- [ ] **Próximo** — agendamento diário (GitHub Actions), dashboard Looker Studio, Spark no Databricks Community; modo completo (Terraform) quando houver billing
+- [x] **Automação** — pipeline diário (07:00 BRT) no GitHub Actions via Workload Identity Federation, validado em execução real
+- [ ] **Próximo** — dashboard Looker Studio, Spark no Databricks Community; modo completo (Terraform) quando houver billing
 
 ---
 
