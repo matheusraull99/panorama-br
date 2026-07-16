@@ -1,18 +1,34 @@
-# Cloud Workflow — pipeline diário do Panorama BR (esqueleto, Fase 5).
-# Padrão: Cloud Run Job (extract) -> refresh metadata BigLake -> Dataform (Silver + Gold).
+# Cloud Workflow — pipeline diário do Panorama BR.
+# Padrão: Cloud Run Jobs (extract Bronze) -> Dataform (Silver + Gold numa única invocation).
+#
+# Notas de arquitetura:
+# - Silver e Gold ficam num ÚNICO workflowConfig ("run-all") — o Dataform resolve a ordem
+#   topologicamente via ref(); invocations separadas criariam race condition (Gold lendo
+#   Silver desatualizado).
+# - As tabelas Bronze são externas padrão (sem metadata cache) — a query lê o GCS direto,
+#   então não há step de refresh de cache aqui.
 main:
   steps:
-    - run_extraction:
-        # TODO(Fase 5): googleapis.run.v1.namespaces.jobs.run (bacen_sgs, ibge_sidra)
-        assign:
-          - placeholder: "extrair fontes Bronze"
-    - refresh_metadata:
-        # TODO: CALL BQ.REFRESH_EXTERNAL_METADATA_CACHE(...) nas tabelas BigLake
-        assign:
-          - placeholder: "refresh cache BigLake antes do MERGE Silver"
+    - extract_bacen:
+        call: googleapis.run.v1.namespaces.jobs.run
+        args:
+          name: namespaces/${project_id}/jobs/brz-bacen-sgs
+          location: ${region}
+        connector_params:
+          timeout: 1800
+    - extract_ibge:
+        call: googleapis.run.v1.namespaces.jobs.run
+        args:
+          name: namespaces/${project_id}/jobs/brz-ibge-sidra
+          location: ${region}
+        connector_params:
+          timeout: 1800
     - trigger_dataform:
-        # TODO: http.post p/ workflowInvocations (1 config combinado Silver + Gold)
-        assign:
-          - placeholder: "trigger Dataform"
+        call: http.post
+        args:
+          url: https://dataform.googleapis.com/v1/projects/${project_id}/locations/${region}/repositories/panorama-br/workflowConfigs/run-all:invoke
+          auth:
+            type: OAuth2
+        result: dataform_invocation
     - done:
-        return: "ok"
+        return: $${dataform_invocation.body}

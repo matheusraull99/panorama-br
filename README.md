@@ -122,7 +122,8 @@ panorama-br/
 - [x] **Fase 2** — Silver: Dataform (SGS + SIDRA) + job PySpark de estatísticas móveis (lógica validada com dados reais) · _execução no Databricks/Dataproc pendente de projeto GCP_
 - [x] **Fase 3** — Gold: `indicadores_mensais` (IPCA 12m validado contra a série oficial BACEN 13522, diff ≤ 0,005 p.p.) + `populacao_brasil` + spec do dashboard · _publicação no Looker pendente de projeto GCP_
 - [x] **Fase 4** — GenAI (Gemini): chatbot RAG NL→SQL com guarda-corpos + agente de relatório semanal — testados ao vivo ([exemplo de relatório gerado](docs/relatorios/2026-07-16.md))
-- [ ] **Fase 5** — CI/CD + orquestração + polish
+- [x] **Fase 5 (código)** — Orquestração completa em IaC: Cloud Workflow real, Cloud Run Jobs, Dataform (repo+release+config combinado Silver+Gold), Scheduler diário, CD via WIF ([guia de deploy](docs/deploy.md))
+- [ ] **Go-live** — criar projeto GCP e executar [docs/deploy.md](docs/deploy.md) (terraform apply → primeira carga → Databricks → Looker)
 
 ---
 
