@@ -1,0 +1,20 @@
+config {
+  type: "table",
+  schema: "silver",
+  tags: ["silver", "daily", "sgs_rolling_stats"],
+  bigquery: { partitionBy: "DATE_TRUNC(data, MONTH)", clusterBy: ["serie"] },
+  description: "Séries SGS com médias móveis (3/6/12) e desvio móvel (12), calculadas em PySpark."
+}
+
+-- Materializa a saída do job PySpark (spark/silver_rolling_stats.py). O Spark já entrega
+-- tipado; aqui só expomos como tabela nativa Silver para o Gold / Looker.
+SELECT
+  codigo,
+  serie,
+  data,
+  valor,
+  media_movel_3,
+  media_movel_6,
+  media_movel_12,
+  desvio_movel_12
+FROM ${ref("silver_spark", "sgs_rolling")}

@@ -1,0 +1,34 @@
+config {
+  type: "incremental",
+  schema: "silver",
+  tags: ["silver", "daily", "sidra_agregados"],
+  uniqueKey: ["tabela", "variavel_codigo", "periodo_codigo"],
+  bigquery: { clusterBy: ["tabela"] },
+  description: "Agregados do IBGE/SIDRA (população, IPCA) limpos e tipados."
+}
+
+-- Silver: tipa o valor (V) e renomeia os descritores crus do SIDRA para nomes legíveis.
+SELECT
+  tabela,
+  SAFE_CAST(D2C AS INT64) AS variavel_codigo,
+  D2N AS variavel,
+  D1N AS territorio,
+  MN AS unidade,
+  D3C AS periodo_codigo,
+  D3N AS periodo,
+  SAFE_CAST(V AS FLOAT64) AS valor
+FROM (
+  SELECT *
+  FROM ${ref("bronze", "ibge_sidra")}
+  WHERE ${when(
+    incremental(),
+    `(year > EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE('America/Sao_Paulo'), INTERVAL 3 DAY))
+      OR (year = EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE('America/Sao_Paulo'), INTERVAL 3 DAY))
+          AND month >= EXTRACT(MONTH FROM DATE_SUB(CURRENT_DATE('America/Sao_Paulo'), INTERVAL 3 DAY))))`,
+    `TRUE`
+  )}
+)
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY tabela, D2C, D3C
+  ORDER BY year DESC, month DESC, day DESC
+) = 1

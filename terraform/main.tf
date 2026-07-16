@@ -42,5 +42,11 @@ resource "google_bigquery_dataset" "gold" {
   location   = var.region
 }
 
+# Saída intermediária do job PySpark (lida pelo Silver via Dataform).
+resource "google_bigquery_dataset" "silver_spark" {
+  dataset_id = "silver_spark"
+  location   = var.region
+}
+
 # TODO(Fase 1+): BigLake external tables (bronze), Cloud Run Jobs,
 # Cloud Workflows + Scheduler, Dataform repo/release config.

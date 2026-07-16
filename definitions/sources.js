@@ -11,3 +11,9 @@ sources.forEach((name) => {
     name: name,
   });
 });
+
+// Saída do job PySpark (spark/silver_rolling_stats.py), lida como source pelo Silver.
+declare({
+  schema: "silver_spark",
+  name: "sgs_rolling",
+});
