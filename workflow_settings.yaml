@@ -1,6 +1,6 @@
 # Configuração do Dataform (formato novo, @dataform/core 3.x)
 # A versão do core DEVE bater com a versão do @dataform/cli que o CI instala.
-defaultProject: CHANGE_ME_PROJECT_ID
+defaultProject: panorama-br
 defaultLocation: southamerica-east1
 defaultDataset: silver
 defaultAssertionDataset: assertions

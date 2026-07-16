@@ -66,13 +66,18 @@ def build_dataframe() -> pd.DataFrame:
 
 
 def main() -> None:
-    bucket_name = os.environ["BUCKET_NAME"]  # strict — sem fallback
     df = build_dataframe()
     if df.empty:
         print(f"[{SOURCE}] ERRO FATAL: DataFrame vazio.")
         sys.exit(1)
-    uri = write_parquet_partitioned(df, bucket_name, SOURCE)
-    print(f"[{SOURCE}] OK — {len(df)} linhas gravadas em {uri}")
+    # Sink: GCS/BigLake quando há bucket (Cloud Run); senão BigQuery direto (modo sandbox).
+    if bucket_name := os.environ.get("BUCKET_NAME"):
+        dest = write_parquet_partitioned(df, bucket_name, SOURCE)
+    else:
+        from jobs.bronze._bq import load_dataframe
+
+        dest = load_dataframe(df, os.environ["GCP_PROJECT_ID"], SOURCE)
+    print(f"[{SOURCE}] OK — {len(df)} linhas gravadas em {dest}")
 
 
 if __name__ == "__main__":

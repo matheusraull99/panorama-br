@@ -2,7 +2,8 @@ config {
   type: "table",
   schema: "silver",
   tags: ["silver", "daily", "sgs_rolling_stats"],
-  bigquery: { partitionBy: "DATE_TRUNC(data, MONTH)", clusterBy: ["serie"] },
+  // Sem partitionBy no modo sandbox (expiração de partição de 60 dias dropa o histórico).
+  bigquery: { clusterBy: ["serie"] },
   description: "Séries SGS com médias móveis (3/6/12) e desvio móvel (12), calculadas em PySpark."
 }
 

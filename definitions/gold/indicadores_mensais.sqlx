@@ -2,7 +2,8 @@ config {
   type: "table",
   schema: "gold",
   tags: ["gold", "daily", "indicadores_mensais"],
-  bigquery: { partitionBy: "DATE_TRUNC(mes, MONTH)", clusterBy: ["mes"] },
+  // Sem partitionBy no modo sandbox (expiração de partição de 60 dias dropa o histórico).
+  bigquery: { clusterBy: ["mes"] },
   description: "Indicadores macroeconômicos consolidados por mês: Selic, câmbio, IPCA mensal e acumulado 12m.",
   columns: {
     mes: "Primeiro dia do mês de referência",
@@ -43,4 +44,3 @@ SELECT
     2
   ) AS ipca_acumulado_12m
 FROM mensal
-ORDER BY mes

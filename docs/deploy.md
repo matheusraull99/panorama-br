@@ -1,5 +1,21 @@
 # Deploy — passo a passo (quando o projeto GCP existir)
 
+## Modo sandbox (sem billing) — ATIVO
+
+O projeto roda hoje em **BigQuery sandbox** (sem conta de faturamento): os extratores
+carregam direto em tabelas nativas (`jobs/bronze/_bq.py`, acionado quando `BUCKET_NAME`
+não está definido) e o Dataform roda via CLI com ADC (`.df-credentials.json` local).
+
+Limitações do sandbox (e como o projeto convive com elas):
+- **Expiração de partição de 60 dias**: tabelas particionadas perdem partições antigas
+  silenciosamente → os modelos ficam SEM `partitionBy` no modo sandbox (volumes minúsculos).
+- **Expiração de tabela de 60 dias**: o refresh diário recria/atualiza as tabelas e renova
+  o prazo.
+- Sem GCS/Cloud Run/Workflows → orquestração via GitHub Actions (cron).
+
+O restante deste guia descreve o **modo completo** (com billing), cuja infra já está
+pronta em `terraform/`.
+
 Checklist único para tirar o projeto do "código pronto" para "rodando na nuvem".
 
 ## 1. Projeto GCP (grátis)

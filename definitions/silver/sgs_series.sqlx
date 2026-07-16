@@ -3,7 +3,10 @@ config {
   schema: "silver",
   tags: ["silver", "daily", "sgs_series"],
   uniqueKey: ["codigo", "data"],
-  bigquery: { partitionBy: "data", clusterBy: ["codigo"] },
+  // Sem partitionBy: o BigQuery sandbox impõe expiração de partição de 60 dias, o que
+  // dropa o histórico silenciosamente. No volume atual (~6k linhas) clusterizar basta;
+  // reativar particionamento por `data` quando o projeto tiver billing.
+  bigquery: { clusterBy: ["codigo"] },
   description: "Séries SGS do Banco Central, limpas e tipadas (Selic, IPCA, câmbio)."
 }
 
