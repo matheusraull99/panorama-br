@@ -18,6 +18,13 @@ perguntas em linguagem natural sobre os dados e gera relatórios macroeconômico
 > Projeto de portfólio — 100% dados públicos e código aberto. Constrói, do zero, um pipeline de dados
 > de nível produção **e** uma aplicação de GenAI/RAG sobre o resultado.
 
+## 📊 Dashboard ao vivo
+
+**[Panorama Macro BR — Looker Studio](https://lookerstudio.google.com/reporting/05506e51-90ad-4cfe-a9ad-a43663b0ea6b)**
+Selic, IPCA (mensal e acumulado 12m) e câmbio USD/BRL — 10 anos de histórico, atualizado
+diariamente às 07:00 BRT pelo pipeline automático. O IPCA acumulado é validado contra a
+série oficial do BACEN (13522) com diferença ≤ 0,005 p.p.
+
 ---
 
 ## Arquitetura
@@ -125,7 +132,8 @@ panorama-br/
 - [x] **Fase 5 (código)** — Orquestração completa em IaC: Cloud Workflow real, Cloud Run Jobs, Dataform (repo+release+config combinado Silver+Gold), Scheduler diário, CD via WIF ([guia de deploy](docs/deploy.md))
 - [x] **Go-live (modo sandbox)** — dados vivos no BigQuery (`panorama-br`): Bronze carregado das APIs reais, Silver+Gold materializados via Dataform CLI, chatbot RAG respondendo com dados reais ([detalhes](docs/deploy.md))
 - [x] **Automação** — pipeline diário (07:00 BRT) no GitHub Actions via Workload Identity Federation, validado em execução real
-- [ ] **Próximo** — dashboard Looker Studio, Spark no Databricks Community; modo completo (Terraform) quando houver billing
+- [x] **Dashboard** — [Panorama Macro BR no Looker Studio](https://lookerstudio.google.com/reporting/05506e51-90ad-4cfe-a9ad-a43663b0ea6b) (público)
+- [ ] **Próximo** — Spark no Databricks Community; modo completo (Terraform) quando houver billing
 
 ---
 
