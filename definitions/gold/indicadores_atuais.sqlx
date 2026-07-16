@@ -1,0 +1,22 @@
+config {
+  type: "table",
+  schema: "gold",
+  tags: ["gold", "daily", "indicadores_atuais"],
+  description: "Foto atual dos indicadores (1 linha) — feita para scorecards do dashboard.",
+  columns: {
+    selic_atual: "Meta Selic vigente (% a.a.) — último valor observado",
+    cambio_usd_atual: "Câmbio USD/BRL mais recente (venda)",
+    ipca_12m_atual: "IPCA acumulado 12m (%) do último mês fechado",
+    mes_referencia_ipca: "Mês fechado a que o IPCA 12m se refere",
+    atualizado_em: "Data do último dado de câmbio/Selic"
+  }
+}
+
+-- 1 linha com o valor mais recente de cada indicador (fontes têm datas de corte diferentes:
+-- Selic/câmbio são diários, IPCA fecha por mês — por isso não dá pra usar 1 única data).
+SELECT
+  (SELECT valor FROM ${ref("silver", "sgs_series")} WHERE serie = 'selic_meta' ORDER BY data DESC LIMIT 1) AS selic_atual,
+  (SELECT valor FROM ${ref("silver", "sgs_series")} WHERE serie = 'cambio_usd_venda' ORDER BY data DESC LIMIT 1) AS cambio_usd_atual,
+  (SELECT ipca_acumulado_12m FROM ${ref("gold", "indicadores_mensais")} WHERE ipca_mensal IS NOT NULL ORDER BY mes DESC LIMIT 1) AS ipca_12m_atual,
+  (SELECT mes FROM ${ref("gold", "indicadores_mensais")} WHERE ipca_mensal IS NOT NULL ORDER BY mes DESC LIMIT 1) AS mes_referencia_ipca,
+  (SELECT MAX(data) FROM ${ref("silver", "sgs_series")}) AS atualizado_em

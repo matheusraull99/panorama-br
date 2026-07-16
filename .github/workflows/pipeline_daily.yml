@@ -47,4 +47,5 @@ jobs:
           echo '{"projectId":"${{ secrets.GCP_PROJECT_ID }}","location":"southamerica-east1"}' > .df-credentials.json
           dataform run \
             --actions sgs_series --actions sidra_agregados \
-            --actions indicadores_mensais --actions populacao_brasil
+            --actions indicadores_mensais --actions populacao_brasil \
+            --actions indicadores_atuais
