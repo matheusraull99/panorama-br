@@ -9,9 +9,6 @@ google-cloud-bigquery>=3.25
 pyspark>=3.5
 
 # GenAI (Fase 4)
-langchain>=0.3
-langchain-community>=0.3
-chromadb>=0.5
-# LLM: escolher um dos provedores
-# google-generativeai>=0.8   # Gemini (free tier)
-# anthropic>=0.40            # Claude
+google-genai>=1.0          # SDK oficial Gemini (free tier)
+numpy>=1.26                # similaridade de cosseno do RAG (catálogo pequeno, in-memory)
+# chromadb>=0.5            # vector DB p/ quando o catálogo crescer (opcional)
