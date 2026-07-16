@@ -1,33 +1,22 @@
 config {
-  type: "incremental",
+  type: "table",
   schema: "silver",
   tags: ["silver", "daily", "sgs_series"],
-  uniqueKey: ["codigo", "data"],
-  // Sem partitionBy: o BigQuery sandbox impõe expiração de partição de 60 dias, o que
-  // dropa o histórico silenciosamente. No volume atual (~6k linhas) clusterizar basta;
-  // reativar particionamento por `data` quando o projeto tiver billing.
+  // Modo sandbox: `type: "table"` (rebuild completo) em vez de incremental — o BigQuery
+  // sandbox proíbe DML, e incremental vira MERGE a partir da 2ª execução. Com ~6k linhas
+  // o rebuild diário é trivial. Sem partitionBy pelo mesmo motivo (expiração de partição
+  // de 60 dias dropa histórico). Voltar a incremental+partition no modo billing.
   bigquery: { clusterBy: ["codigo"] },
   description: "Séries SGS do Banco Central, limpas e tipadas (Selic, IPCA, câmbio)."
 }
 
--- Silver: tipagem forte na subquery interna, dedup por QUALIFY.
--- Filtro incremental lexicográfico em year/month/day para habilitar partition pruning.
+-- Silver: tipagem forte + dedup por QUALIFY (1 linha por código+data).
 SELECT
   SAFE_CAST(codigo AS INT64) AS codigo,
   serie,
   PARSE_DATE('%d/%m/%Y', data) AS data,
   SAFE_CAST(REPLACE(valor, ',', '.') AS FLOAT64) AS valor
-FROM (
-  SELECT *
-  FROM ${ref("bronze", "bacen_sgs")}
-  WHERE ${when(
-    incremental(),
-    `(year > EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE('America/Sao_Paulo'), INTERVAL 3 DAY))
-      OR (year = EXTRACT(YEAR FROM DATE_SUB(CURRENT_DATE('America/Sao_Paulo'), INTERVAL 3 DAY))
-          AND month >= EXTRACT(MONTH FROM DATE_SUB(CURRENT_DATE('America/Sao_Paulo'), INTERVAL 3 DAY))))`,
-    `TRUE`
-  )}
-)
+FROM ${ref("bronze", "bacen_sgs")}
 QUALIFY ROW_NUMBER() OVER (
   PARTITION BY codigo, data
   ORDER BY year DESC, month DESC, day DESC

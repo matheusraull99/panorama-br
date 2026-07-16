@@ -24,10 +24,13 @@ def load_dataframe(df: pd.DataFrame, project: str, table: str) -> str:
 
     client = bigquery.Client(project=project)
     destination = f"{project}.bronze.{table}"
+    # WRITE_TRUNCATE (modo sandbox): as fontes entregam a janela completa a cada extração,
+    # então substituir mantém o Bronze enxuto E renova a expiração de 60 dias do sandbox.
+    # No modo completo (GCS/BigLake) o histórico bruto fica no Parquet particionado.
     job = client.load_table_from_dataframe(
         df,
         destination,
-        job_config=bigquery.LoadJobConfig(write_disposition="WRITE_APPEND"),
+        job_config=bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE"),
     )
     job.result()
     return destination
