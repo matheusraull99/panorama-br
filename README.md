@@ -120,7 +120,7 @@ panorama-br/
 - [x] **Fase 0** — Scaffold: estrutura, README, arquitetura, base Terraform
 - [x] **Fase 1** — Bronze: extratores BACEN SGS + IBGE (fail-loud) validados contra APIs reais + tabelas BigLake no Terraform · _deploy pendente de projeto GCP_
 - [x] **Fase 2** — Silver: Dataform (SGS + SIDRA) + job PySpark de estatísticas móveis (lógica validada com dados reais) · _execução no Databricks/Dataproc pendente de projeto GCP_
-- [ ] **Fase 3** — Gold + dashboard Looker Studio público
+- [x] **Fase 3** — Gold: `indicadores_mensais` (IPCA 12m validado contra a série oficial BACEN 13522, diff ≤ 0,005 p.p.) + `populacao_brasil` + spec do dashboard · _publicação no Looker pendente de projeto GCP_
 - [ ] **Fase 4** — GenAI: chatbot RAG + agente de relatório semanal
 - [ ] **Fase 5** — CI/CD + orquestração + polish
 

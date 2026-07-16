@@ -1,0 +1,46 @@
+config {
+  type: "table",
+  schema: "gold",
+  tags: ["gold", "daily", "indicadores_mensais"],
+  bigquery: { partitionBy: "DATE_TRUNC(mes, MONTH)", clusterBy: ["mes"] },
+  description: "Indicadores macroeconômicos consolidados por mês: Selic, câmbio, IPCA mensal e acumulado 12m.",
+  columns: {
+    mes: "Primeiro dia do mês de referência",
+    selic_meta_fim_mes: "Meta Selic vigente no fim do mês (% a.a.)",
+    cambio_usd_medio: "Câmbio USD/BRL médio do mês (venda)",
+    cambio_usd_fim_mes: "Câmbio USD/BRL do último dia útil do mês (venda)",
+    ipca_mensal: "Variação mensal do IPCA (%)",
+    ipca_acumulado_12m: "IPCA acumulado 12 meses (%) — produto composto das variações mensais"
+  }
+}
+
+-- Gold: consolida as séries do SGS numa visão mensal única para o dashboard.
+-- Regra do projeto: Gold é sempre `table` (Looker Studio DirectQuery) e partição MENSAL.
+
+WITH mensal AS (
+  SELECT
+    DATE_TRUNC(data, MONTH) AS mes,
+    -- fim do mês: último valor observado no mês (por série)
+    ARRAY_AGG(IF(serie = 'selic_meta', valor, NULL) IGNORE NULLS ORDER BY data DESC LIMIT 1)[SAFE_OFFSET(0)] AS selic_meta_fim_mes,
+    AVG(IF(serie = 'cambio_usd_venda', valor, NULL)) AS cambio_usd_medio,
+    ARRAY_AGG(IF(serie = 'cambio_usd_venda', valor, NULL) IGNORE NULLS ORDER BY data DESC LIMIT 1)[SAFE_OFFSET(0)] AS cambio_usd_fim_mes,
+    MAX(IF(serie = 'ipca_mensal', valor, NULL)) AS ipca_mensal
+  FROM ${ref("silver", "sgs_series")}
+  GROUP BY mes
+)
+
+SELECT
+  mes,
+  selic_meta_fim_mes,
+  ROUND(cambio_usd_medio, 4) AS cambio_usd_medio,
+  cambio_usd_fim_mes,
+  ipca_mensal,
+  -- acumulado 12m: produto composto Π(1 + v/100) - 1, via soma de logs (janela de 12 meses)
+  ROUND(
+    (EXP(SUM(LN(1 + ipca_mensal / 100)) OVER (
+      ORDER BY mes ROWS BETWEEN 11 PRECEDING AND CURRENT ROW
+    )) - 1) * 100,
+    2
+  ) AS ipca_acumulado_12m
+FROM mensal
+ORDER BY mes

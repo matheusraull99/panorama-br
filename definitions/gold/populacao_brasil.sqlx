@@ -1,0 +1,19 @@
+config {
+  type: "table",
+  schema: "gold",
+  tags: ["gold", "daily", "populacao_brasil"],
+  description: "População residente estimada do Brasil por ano (IBGE/SIDRA t.6579).",
+  columns: {
+    ano: "Ano de referência",
+    populacao: "População residente estimada",
+    crescimento_pct: "Crescimento percentual vs ano anterior"
+  }
+}
+
+SELECT
+  SAFE_CAST(periodo AS INT64) AS ano,
+  SAFE_CAST(valor AS INT64) AS populacao,
+  ROUND(SAFE_DIVIDE(valor - LAG(valor) OVER (ORDER BY periodo), NULLIF(LAG(valor) OVER (ORDER BY periodo), 0)) * 100, 3) AS crescimento_pct
+FROM ${ref("silver", "sidra_agregados")}
+WHERE tabela = 'populacao_estimada'
+ORDER BY ano
